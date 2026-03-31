@@ -3,6 +3,7 @@ import ExplanationCards from './ExplanationCards'
 import VisualizationPanel from './VisualizationPanel'
 import ControlsPanel from './ControlsPanel'
 import InterviewSection from './InterviewSection'
+import MechanismVisualizer from './MechanismVisualizer'
 
 export default function ResultContainer({ result, controls, onControlChange, datasetType, setDatasetType, taskType, setTaskType }) {
   
@@ -117,6 +118,11 @@ export default function ResultContainer({ result, controls, onControlChange, dat
       {/* Explanation Cards Engine */}
       <div className="animate-slide-up delay-400 mt-12">
         <ExplanationCards result={contextData} />
+      </div>
+
+      {/* Algorithm Mechanism Visualizer */}
+      <div className="animate-slide-up delay-500 mt-12">
+        <MechanismVisualizer algorithmId={result.id} taskType={taskType} />
       </div>
 
       {/* Interview Section Engine */}

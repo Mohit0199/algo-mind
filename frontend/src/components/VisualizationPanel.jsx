@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Plot from 'react-plotly.js'
 
-export default function VisualizationPanel({ algorithmId, controls, datasetType, taskType, is3DMode, runCounter }) {
+export default function VisualizationPanel({ algorithmId, controls, datasetType, taskType, is3DMode, runCounter, customDatasetContent }) {
   const [plotData, setPlotData] = useState(null)
   const [metrics, setMetrics] = useState({})
   const [extraGraphics, setExtraGraphics] = useState(null)
@@ -23,7 +23,8 @@ export default function VisualizationPanel({ algorithmId, controls, datasetType,
           dataset: datasetType,
           hyperparameters: controls,
           task_type: taskType,
-          is_3d: is3DMode
+          is_3d: is3DMode,
+          custom_dataset: datasetType === 'custom' ? customDatasetContent : null
         })
         
         const data = response.data

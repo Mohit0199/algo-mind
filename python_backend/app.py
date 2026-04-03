@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Optional
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -36,6 +37,7 @@ class VisualizeRequest(BaseModel):
     dataset: str
     task_type: str = "classification"
     is_3d: bool = False
+    custom_dataset: Optional[str] = None
     hyperparameters: dict
 
 def generate_dataset(dataset_type, is_regression=False, is_3d=False):
@@ -72,6 +74,44 @@ def generate_clustering_dataset(dataset_type):
             [-2.5, -2.5], [2.5, -2.5], [0, 2.5], [0, -0.5]
         ], cluster_std=[0.8, 0.8, 0.8, 1.4], random_state=42)
     return X
+
+def generate_dim_reduction_dataset():
+    from sklearn.datasets import make_classification
+    # Complex 10-D dataset with 3 distinct classes
+    X, y = make_classification(n_samples=400, n_features=10, n_informative=5, n_redundant=2, n_classes=3, n_clusters_per_class=1, random_state=42)
+    return X, y
+
+def build_dim_reduction_fig(X_transformed, y, is_3d=False):
+    if is_3d and X_transformed.shape[1] >= 3:
+        fig = go.Figure(data=[go.Scatter3d(
+            x=X_transformed[:,0], y=X_transformed[:,1], z=X_transformed[:,2],
+            mode='markers',
+            marker=dict(size=4, color=y, colorscale='Viridis', opacity=0.8, line=dict(width=0.5, color='DarkSlateGrey')),
+            text=[f"Class {lbl}" for lbl in y],
+            hovertemplate="Component 1: %{x:.2f}<br>Component 2: %{y:.2f}<br>Component 3: %{z:.2f}<br>%{text}<extra></extra>"
+        )])
+        fig.update_layout(
+            margin=dict(l=0, r=0, b=0, t=0),
+            scene=dict(xaxis_title='Comp 1', yaxis_title='Comp 2', zaxis_title='Comp 3'),
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)'
+        )
+    else:
+        fig = go.Figure(data=[go.Scatter(
+            x=X_transformed[:,0], y=X_transformed[:,1],
+            mode='markers',
+            marker=dict(size=8, color=y, colorscale='Viridis', opacity=0.8, line=dict(width=1, color='DarkSlateGrey')),
+            text=[f"Class {lbl}" for lbl in y],
+            hovertemplate="Component 1: %{x:.2f}<br>Component 2: %{y:.2f}<br>%{text}<extra></extra>"
+        )])
+        fig.update_layout(
+            margin=dict(l=0, r=0, b=0, t=0),
+            xaxis_title='Component 1',
+            yaxis_title='Component 2',
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)'
+        )
+    return fig
 
 def build_classification_fig(clf, X, y, y_pred, X_test, y_test, colorscale='RdBu', is_3d=False):
     if is_3d:
@@ -416,6 +456,76 @@ async def visualize_algorithm(req: VisualizeRequest):
                 set_classification_metrics(y_test, y_pred)
                 fig = build_classification_fig(clf, X, y, y_pred, X_test, y_test, 'Spectral', is_3d)
                 
+        # Dimensionality Reduction
+        elif algo in ['pca', 't_sne', 'lda']:
+            if ds_type == 'custom' and getattr(req, 'custom_dataset', None):
+                import io
+                df = pd.read_csv(io.StringIO(req.custom_dataset), nrows=1000)
+                
+                # Intelligent parsing: drop any fully empty columns
+                df = df.dropna(axis=1, how='all')
+                
+                # Check for label/target column to use as classes (Y)
+                target_col = next((col for col in df.columns if str(col).lower() in ['target', 'label', 'class']), None)
+                if target_col:
+                    y = df[target_col].values
+                    df = df.drop(columns=[target_col])
+                else:
+                    y = np.zeros(len(df))
+                
+                # Extract only numeric columns for mathematical operations
+                numeric_df = df.select_dtypes(include=[np.number])
+                
+                if numeric_df.empty:
+                    raise HTTPException(status_code=400, detail="Custom CSV contains no numeric columns to perform dimensionality reduction on.")
+                    
+                X = numeric_df.fillna(0).values
+            else:
+                # Fallback base dataset with high-dimensional data
+                X, y = generate_dim_reduction_dataset()
+                
+            from sklearn.preprocessing import StandardScaler
+            X = StandardScaler().fit_transform(X)
+            
+            if algo == 'pca':
+                from sklearn.decomposition import PCA
+                n_comp = int(params.get("n_components", 2))
+                is_3d = (n_comp >= 3)
+                solver = params.get("svd_solver", "auto")
+                clf = PCA(n_components=n_comp, svd_solver=solver)
+                X_transformed = clf.fit_transform(X)
+                metrics["Explained Variance"] = f"{sum(clf.explained_variance_ratio_)*100:.1f}%"
+                
+            elif algo == 't_sne':
+                from sklearn.manifold import TSNE
+                perplexity = float(params.get("perplexity", 30))
+                lr = params.get("learning_rate", "auto")
+                if lr != "auto": lr = float(lr)
+                n_iter = int(params.get("n_iter", 1000))
+                n_comp = 3 if is_3d else 2
+                clf = TSNE(n_components=n_comp, perplexity=perplexity, learning_rate=lr, n_iter=n_iter, random_state=42)
+                X_transformed = clf.fit_transform(X)
+                metrics["KL Divergence"] = f"{clf.kl_divergence_:.4f}"
+                
+            elif algo == 'lda':
+                from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+                solver = params.get("solver", "svd")
+                # lsqr solver doesn't support dimensionality reduction physically
+                if solver == 'lsqr': solver = 'svd'
+                n_comp = int(params.get("n_components", 2))
+                # LDA max dimensions = n_classes - 1 (since classes=3, max=2)
+                if is_3d: n_comp = 2 # Hard lock
+                
+                # 'eigen' solver crashes on collinear features (highly likely in generated dummy data)
+                # without regularization, so we apply auto shrinkage.
+                shrinkage = 'auto' if solver == 'eigen' else None
+                clf = LinearDiscriminantAnalysis(n_components=n_comp, solver=solver, shrinkage=shrinkage)
+                
+                X_transformed = clf.fit_transform(X, y)
+                metrics["Explained Variance"] = f"{sum(clf.explained_variance_ratio_)*100:.1f}%"
+                
+            fig = build_dim_reduction_fig(X_transformed, y, is_3d and algo != 'lda')
+
         else:
             raise HTTPException(status_code=400, detail="Algorithm visualization not mapped dynamically yet.")
             

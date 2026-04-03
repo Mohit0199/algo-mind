@@ -10,6 +10,19 @@ export default function ResultContainer({ result, controls, onControlChange, dat
   // Trigger to fetch the graph (used by the Run button)
   const [runCounter, setRunCounter] = useState(0)
   const [is3DMode, setIs3DMode] = useState(false)
+  const [customDatasetContent, setCustomDatasetContent] = useState(null)
+  
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      setCustomDatasetContent(event.target.result)
+      setDatasetType('custom')
+      setRunCounter(prev => prev + 1)
+    }
+    reader.readAsText(file)
+  }
   
   const handleRunModel = () => {
     setRunCounter(prev => prev + 1)
@@ -42,6 +55,7 @@ export default function ResultContainer({ result, controls, onControlChange, dat
                         setTaskType(t)
                         // Auto-sync the dataset visually when swapping modes
                         if (t === 'regression') setDatasetType('linear')
+                        else if (t === 'dimensionality_reduction') setDatasetType('high_dim')
                         else setDatasetType('blobs')
                         
                         // Increment run counter so the chart auto-draws the correct base dataset
@@ -70,7 +84,7 @@ export default function ResultContainer({ result, controls, onControlChange, dat
           </div>
           <div className="flex flex-col md:flex-row items-center gap-4">
              {/* 3D Mode Toggle */}
-             {['linear_regression', 'logistic_regression', 'svm'].includes(result.id) && (
+             {['linear_regression', 'logistic_regression', 'svm', 't_sne'].includes(result.id) && (
                <div className="flex items-center gap-3 bg-slate-950 px-4 py-2 rounded-xl border border-indigo-500/30 shadow-[0_0_10px_rgba(99,102,241,0.1)]">
                  <span className="text-sm font-bold text-indigo-300 tracking-wide uppercase">3D Engine</span>
                  <button 
@@ -93,6 +107,14 @@ export default function ResultContainer({ result, controls, onControlChange, dat
                   <button onClick={() => setDatasetType('blobs')} className={`px-4 py-2 rounded-lg text-sm transition-all ${datasetType === 'blobs' ? 'bg-slate-800 text-indigo-300' : 'text-slate-500 hover:bg-slate-800/50'}`}>Blobs (Easy)</button>
                   <button onClick={() => setDatasetType('moons')} className={`px-4 py-2 rounded-lg text-sm transition-all ${datasetType === 'moons' ? 'bg-slate-800 text-indigo-300' : 'text-slate-500 hover:bg-slate-800/50'}`}>Two Moons (Hard)</button>
                   <button onClick={() => setDatasetType('circles')} className={`px-4 py-2 rounded-lg text-sm transition-all ${datasetType === 'circles' ? 'bg-slate-800 text-indigo-300' : 'text-slate-500 hover:bg-slate-800/50'}`}>Concentric (Hard)</button>
+                </>
+             ) : taskType === 'dimensionality_reduction' ? (
+                <>
+                  <button onClick={() => setDatasetType('high_dim')} className={`px-4 py-2 rounded-lg text-sm transition-all ${datasetType === 'high_dim' ? 'bg-slate-800 text-indigo-300' : 'text-slate-500 hover:bg-slate-800/50'}`}>High Dimensional (10 Features)</button>
+                  <label className={`cursor-pointer px-4 py-2 rounded-lg text-sm transition-all ${datasetType === 'custom' ? 'bg-slate-800 text-indigo-300' : 'text-slate-500 hover:bg-slate-800/50 flex items-center gap-2'}`}>
+                    <span>Upload CSV</span>
+                    <input type="file" accept=".csv" className="hidden" onChange={handleFileUpload} />
+                  </label>
                 </>
              ) : (
                 <>
@@ -117,6 +139,7 @@ export default function ResultContainer({ result, controls, onControlChange, dat
             taskType={taskType}
             is3DMode={is3DMode}
             runCounter={runCounter}
+            customDatasetContent={customDatasetContent}
           />
         </div>
 

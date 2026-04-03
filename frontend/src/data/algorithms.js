@@ -569,5 +569,87 @@ export const algorithms = [
         loss: { label: "Loss Function", options: ["squared_error", "absolute_error", "huber", "quantile"], default: "squared_error", desc: "The loss to be optimized." }
       }
     }
+  },
+  {
+    id: "pca",
+    title: "Principal Component Analysis (PCA)",
+    supportedTypes: ["dimensionality_reduction"],
+    dimensionality_reduction: {
+      summary: "An unsupervised linear transformation technique that reduces the dimensionality of data while retaining the maximum possible variance.",
+      explanation: "Imagine a 3D cloud of data points shaped like a pancake. PCA looks at this cloud and mathematically determines the axes (components) where the data gets stretched the most. It then squashes the points down onto those main axes. The resulting first component holds the most 'information' (variance), the second holds the next most, and so on. It intentionally throws away the dimensions where the data is thickest/noisiest, making it vastly easier for models like K-Means or Random Forest to process.",
+      analogy: "Like shining a flashlight on a translucent 3D object and looking at the 2D shadow it casts on the wall. PCA rotates the object until it finds the exact angle that casts the widest, most detailed shadow possible.",
+      steps: [
+        "Standardize the dataset so all features are on the same heavily balanced scale.",
+        "Compute the Covariance Matrix to understand how features relate to each other.",
+        "Calculate the Eigenvectors (directions) and Eigenvalues (magnitude) of the matrix.",
+        "Sort the Eigenvectors by highest Eigenvalue to find the Principal Components.",
+        "Project the original high-dimensional data onto the new, lower-dimensional axes."
+      ],
+      interviewQs: [
+        { q: "Is PCA supervised or unsupervised?", a: "Unsupervised. It only looks at the features (X) to maximize variance, it completely ignores the target labels (Y)." },
+        { q: "Why is feature scaling/standardization heavily required before running PCA?", a: "Because PCA calculates variance. If one feature is measured in millions (like Salary) and one in decimals (like BMI), the algorithm will wrongly determine the vast Salary feature as the only important Principal Component." },
+        { q: "What is 'Explained Variance'?", a: "It dictates how much of the original dataset's total spread (information) is captured by a specific Principal Component." },
+        { q: "Does PCA select the best existing features?", a: "No, PCA performs Feature Extraction, not Selection. It creates entirely new mathematical dimensions that are linear combinations of all the original features." }
+      ],
+      hyperparameters: {
+        n_components: { label: "Components (Dimensions)", min: 1, max: 3, step: 1, default: 2, desc: "The number of dimensions to crush the data down into." },
+        svd_solver: { label: "SVD Solver", options: ["auto", "full", "randomized"], default: "auto", desc: "The solver used to calculate the Singular Value Decomposition." }
+      }
+    }
+  },
+  {
+    id: "t_sne",
+    title: "t-SNE",
+    supportedTypes: ["dimensionality_reduction"],
+    dimensionality_reduction: {
+      summary: "A powerful, non-linear technique specifically engineered for visualizing extremely high-dimensional datasets into 2D or 3D plots.",
+      explanation: "Unlike PCA which cares globally about large variance, t-Distributed Stochastic Neighbor Embedding (t-SNE) cares locally about 'neighborhoods'. It maps high dimensional points by converting their physical distances into conditional probabilities. It then creates an identical probability map in a 2D space. Finally, it slowly shuffles the 2D points around using Gradient Descent until the 2D neighborhood groups perfectly match the High-Dimensional neighborhood groups.",
+      analogy: "Imagine having a massive, chaotic family tree where everyone is scattered. t-SNE acts like a party planner arranging seating at a wedding: they ensure that close siblings sit right next to each other locally, while distant cousins sit far apart, completely ignoring the global architecture of the building.",
+      steps: [
+        "Measure the high-dimensional distances between all data points.",
+        "Convert those distances into a bell-curve (Gaussian) probability distribution.",
+        "Create a random layout of those same points in a 2D space using a Heavy-Tailed (Student-t) distribution.",
+        "Measure the distances in the 2D space and compare against the high-dimensional probabilities.",
+        "Adjust the 2D points using Kullback-Leibler divergence until the structures match."
+      ],
+      interviewQs: [
+        { q: "What does the 'Perplexity' hyperparameter control?", a: "Perplexity balances attention between local and global aspects of your data. Think of it roughly as the number of close neighbors each point looks at. A very low perplexity creates lots of dense little clumps; high perplexity creates a more uniform 'soup'." },
+        { q: "Can t-SNE be used for clustering, like K-Means?", a: "No. While t-SNE produces visually beautiful clusters, the distances between clusters are mathematically meaningless and heavily distorted. It is strictly for human visualization." },
+        { q: "Why use t-SNE instead of PCA?", a: "PCA only captures linear relationships. t-SNE can capture highly non-linear, twisted manifolds (like an unraveling swiss roll) and preserves local structural integrity much better." },
+        { q: "Does t-SNE generate a reusable mathematical model?", a: "No. Unlike PCA, you cannot save a t-SNE model and 'transform' new incoming data points later. Every time you run t-SNE, it recalculates the entire map from scratch." }
+      ],
+      hyperparameters: {
+        perplexity: { label: "Perplexity", min: 5, max: 50, step: 5, default: 30, desc: "The number of nearest neighbors that is used in other manifold learning algorithms. Larger datasets require a larger perplexity." },
+        learning_rate: { label: "Learning Rate", options: ["auto", "10", "100", "500"], default: "auto", desc: "How aggressively the algorithm adjusts the points in 2D space per iteration." },
+        n_iter: { label: "Iterations", min: 250, max: 1000, step: 50, default: 1000, desc: "Maximum number of iterations for the optimization." }
+      }
+    }
+  },
+  {
+    id: "lda",
+    title: "Linear Discriminant Analysis (LDA)",
+    supportedTypes: ["dimensionality_reduction"],
+    dimensionality_reduction: {
+      summary: "A supervised dimensionality reduction and classification tool that maximizes the separability between known categories.",
+      explanation: "While PCA blindly tries to spread the data out as much as possible, LDA actually looks at the answer key (the labels). It measures the spread of the data *inside* each class and compares it to the distance *between* the different classes. It then draws new axes that intentionally squash the points of the same class together, while pushing the different classes as far apart as possible.",
+      analogy: "If PCA is a photographer taking a wide panoramic shot of a crowded room to capture everything, LDA is a bouncer who forces everyone wearing red shirts into the left corner of the room, and blue shirts into the right corner, to make them easy to identify.",
+      steps: [
+        "Calculate the mean and variance for every individual class.",
+        "Calculate the within-class scatter (how spread out same-class points are).",
+        "Calculate the between-class scatter (how far apart the class centers are).",
+        "Construct a mathematical axis that maximizes the between-class scatter while minimizing the within-class scatter.",
+        "Project the data onto this new highly-discriminative axis."
+      ],
+      interviewQs: [
+        { q: "What is the core difference between PCA and LDA?", a: "PCA is unsupervised and maximizes global variance. LDA is supervised and maximizes the distance between the means of classes while minimizing the spread within each class." },
+        { q: "What are the limitations of LDA's dimensions?", a: "The number of components LDA can extract is fundamentally limited to at maximum (Number of Classes - 1). If you only have 2 classes, LDA can strictly only reduce the data down to 1 single dimension." },
+        { q: "What assumption does LDA make about the data distribution?", a: "LDA assumes that the data is normally distributed (Gaussian) and that all classes share the exact same covariance matrix." },
+        { q: "Can LDA be used as a classifier?", a: "Yes. In addition to reducing dimensionality, the axes it draws can be used to directly predict which class new data belongs to." }
+      ],
+      hyperparameters: {
+        solver: { label: "Solver", options: ["svd", "eigen"], default: "svd", desc: "The solver engine used to calculate the discrimination." },
+        n_components: { label: "Components (Dims)", min: 1, max: 2, step: 1, default: 2, desc: "Cannot exceed Number of Classes minus 1." }
+      }
+    }
   }
 ];

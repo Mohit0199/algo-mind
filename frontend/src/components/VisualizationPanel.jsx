@@ -18,7 +18,8 @@ export default function VisualizationPanel({ algorithmId, controls, datasetType,
       setLoading(true)
       setError(null)
       try {
-        const response = await axios.post('/api/visualize', {
+        const API_BASE = import.meta.env.VITE_API_URL || ''
+        const response = await axios.post(`${API_BASE}/api/visualize`, {
           algorithm: algorithmId,
           dataset: datasetType,
           hyperparameters: controls,

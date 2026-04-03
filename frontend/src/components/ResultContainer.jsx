@@ -15,6 +15,13 @@ export default function ResultContainer({ result, controls, onControlChange, dat
   const handleFileUpload = (e) => {
     const file = e.target.files[0]
     if (!file) return
+    
+    // Vercel & Render free-tier strict payload limitation (2MB Max)
+    if (file.size > 2000000) {
+      alert("Dataset is too large! Please aggressively limit your CSV to under 2MB to prevent Free-Tier server crashes.")
+      return
+    }
+    
     const reader = new FileReader()
     reader.onload = (event) => {
       setCustomDatasetContent(event.target.result)

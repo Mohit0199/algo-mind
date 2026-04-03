@@ -473,8 +473,8 @@ async def visualize_algorithm(req: VisualizeRequest):
                 else:
                     y = np.zeros(len(df))
                 
-                # Extract only numeric columns for mathematical operations
-                numeric_df = df.select_dtypes(include=[np.number])
+                # Extract only numeric columns for mathematical operations (strictly constrained to 350 columns to save Free-Tier RAM limits + WebGL lag)
+                numeric_df = df.select_dtypes(include=[np.number]).iloc[:, :350]
                 
                 if numeric_df.empty:
                     raise HTTPException(status_code=400, detail="Custom CSV contains no numeric columns to perform dimensionality reduction on.")

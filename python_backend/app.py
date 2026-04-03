@@ -502,9 +502,9 @@ async def visualize_algorithm(req: VisualizeRequest):
                 perplexity = float(params.get("perplexity", 30))
                 lr = params.get("learning_rate", "auto")
                 if lr != "auto": lr = float(lr)
-                n_iter = int(params.get("n_iter", 1000))
+                max_iter = int(params.get("n_iter", 1000))
                 n_comp = 3 if is_3d else 2
-                clf = TSNE(n_components=n_comp, perplexity=perplexity, learning_rate=lr, n_iter=n_iter, random_state=42, n_jobs=-1)
+                clf = TSNE(n_components=n_comp, perplexity=perplexity, learning_rate=lr, max_iter=max_iter, random_state=42, n_jobs=-1)
                 X_transformed = clf.fit_transform(X)
                 metrics["KL Divergence"] = f"{clf.kl_divergence_:.4f}"
                 

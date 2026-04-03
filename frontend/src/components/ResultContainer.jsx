@@ -9,6 +9,7 @@ export default function ResultContainer({ result, controls, onControlChange, dat
   
   // Trigger to fetch the graph (used by the Run button)
   const [runCounter, setRunCounter] = useState(0)
+  const [is3DMode, setIs3DMode] = useState(false)
   
   const handleRunModel = () => {
     setRunCounter(prev => prev + 1)
@@ -67,7 +68,21 @@ export default function ResultContainer({ result, controls, onControlChange, dat
             <h3 className="text-lg font-bold text-slate-100 mb-1 flex items-center gap-2"><span className="text-2xl">🌍</span> Data Playground</h3>
             <p className="text-slate-400 text-sm">Select the shape of the dataset to challenge your model's decision boundaries.</p>
           </div>
-          <div className="flex bg-slate-950 rounded-xl p-1.5 border border-slate-800">
+          <div className="flex flex-col md:flex-row items-center gap-4">
+             {/* 3D Mode Toggle */}
+             {['linear_regression', 'logistic_regression', 'svm'].includes(result.id) && (
+               <div className="flex items-center gap-3 bg-slate-950 px-4 py-2 rounded-xl border border-indigo-500/30 shadow-[0_0_10px_rgba(99,102,241,0.1)]">
+                 <span className="text-sm font-bold text-indigo-300 tracking-wide uppercase">3D Engine</span>
+                 <button 
+                   onClick={() => { setIs3DMode(!is3DMode); setRunCounter(prev => prev + 1); }}
+                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${is3DMode ? 'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]' : 'bg-slate-700'}`}
+                 >
+                   <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${is3DMode ? 'translate-x-6' : 'translate-x-1'}`} />
+                 </button>
+               </div>
+             )}
+
+             <div className="flex bg-slate-950 rounded-xl p-1.5 border border-slate-800">
              {taskType === 'regression' ? (
                 <>
                   <button onClick={() => setDatasetType('linear')} className={`px-4 py-2 rounded-lg text-sm transition-all ${datasetType === 'linear' ? 'bg-slate-800 text-indigo-300' : 'text-slate-500 hover:bg-slate-800/50'}`}>Linear Trend</button>
@@ -83,8 +98,9 @@ export default function ResultContainer({ result, controls, onControlChange, dat
                 <>
                   <button onClick={() => setDatasetType('blobs')} className={`px-4 py-2 rounded-lg text-sm transition-all ${datasetType === 'blobs' ? 'bg-slate-800 text-indigo-300' : 'text-slate-500 hover:bg-slate-800/50'}`}>Cluster Blobs</button>
                   <button onClick={() => setDatasetType('moons')} className={`px-4 py-2 rounded-lg text-sm transition-all ${datasetType === 'moons' ? 'bg-slate-800 text-indigo-300' : 'text-slate-500 hover:bg-slate-800/50'}`}>Intertwined Moons</button>
-                </>
+                 </>
              )}
+             </div>
           </div>
         </div>
       </div>
@@ -99,6 +115,7 @@ export default function ResultContainer({ result, controls, onControlChange, dat
             controls={controls}
             datasetType={datasetType}
             taskType={taskType}
+            is3DMode={is3DMode}
             runCounter={runCounter}
           />
         </div>

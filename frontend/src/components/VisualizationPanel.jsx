@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import axios from 'axios'
 import Plot from 'react-plotly.js'
 
-export default function VisualizationPanel({ algorithmId, controls, datasetType, taskType, runCounter }) {
+export default function VisualizationPanel({ algorithmId, controls, datasetType, taskType, is3DMode, runCounter }) {
   const [plotData, setPlotData] = useState(null)
   const [metrics, setMetrics] = useState({})
   const [extraGraphics, setExtraGraphics] = useState(null)
@@ -22,7 +22,8 @@ export default function VisualizationPanel({ algorithmId, controls, datasetType,
           algorithm: algorithmId,
           dataset: datasetType,
           hyperparameters: controls,
-          task_type: taskType
+          task_type: taskType,
+          is_3d: is3DMode
         })
         
         const data = response.data
@@ -54,7 +55,7 @@ export default function VisualizationPanel({ algorithmId, controls, datasetType,
 
         {/* Live Metrics sent back from Python logic */}
         <div className="flex items-center gap-4 text-sm mt-2 sm:mt-0">
-           {Object.entries(metrics).map(([key, value]) => (
+           {Object.entries(metrics).filter(([k]) => k !== 'Confusion Matrix').map(([key, value]) => (
              <div key={key} className="flex flex-col items-end">
                <span className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">{key}</span>
                <span className={`font-mono flex items-center gap-1.5 ${key.includes('Error') || key.includes('MSE') ? 'text-amber-400' : 'text-emerald-400'}`}>
@@ -66,6 +67,31 @@ export default function VisualizationPanel({ algorithmId, controls, datasetType,
         </div>
 
       </div>
+
+      {/* Interactive Confusion Matrix Panel */}
+      {metrics['Confusion Matrix'] && (
+        <div className="bg-slate-950/80 border-b border-slate-800 p-4 flex flex-col items-center">
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-3">Confusion Matrix (Test Set)</p>
+            <div className="grid grid-cols-2 gap-2 text-center text-xs font-mono">
+                <div className="bg-emerald-900/30 border border-emerald-500/30 text-emerald-400 rounded p-2 px-6 shadow-[0_0_10px_rgba(16,185,129,0.1)]">
+                    <span className="block text-[9px] text-emerald-500/70 uppercase">True Pos</span>
+                    <span className="text-lg font-bold">{metrics['Confusion Matrix'].TP !== undefined ? metrics['Confusion Matrix'].TP : '-'}</span>
+                </div>
+                <div className="bg-rose-900/30 border border-rose-500/30 text-rose-400 rounded p-2 px-6 shadow-[0_0_10px_rgba(244,63,94,0.1)]">
+                    <span className="block text-[9px] text-rose-500/70 uppercase">False Pos</span>
+                    <span className="text-lg font-bold">{metrics['Confusion Matrix'].FP !== undefined ? metrics['Confusion Matrix'].FP : '-'}</span>
+                </div>
+                <div className="bg-rose-900/30 border border-rose-500/30 text-rose-400 rounded p-2 px-6 shadow-[0_0_10px_rgba(244,63,94,0.1)]">
+                    <span className="block text-[9px] text-rose-500/70 uppercase">False Neg</span>
+                    <span className="text-lg font-bold">{metrics['Confusion Matrix'].FN !== undefined ? metrics['Confusion Matrix'].FN : '-'}</span>
+                </div>
+                <div className="bg-emerald-900/30 border border-emerald-500/30 text-emerald-400 rounded p-2 px-6 shadow-[0_0_10px_rgba(16,185,129,0.1)]">
+                    <span className="block text-[9px] text-emerald-500/70 uppercase">True Neg</span>
+                    <span className="text-lg font-bold">{metrics['Confusion Matrix'].TN !== undefined ? metrics['Confusion Matrix'].TN : '-'}</span>
+                </div>
+            </div>
+        </div>
+      )}
 
       {/* Embedded Chart Component Container */}
       <div className="w-full h-[550px] bg-slate-950/50 p-0 relative flex flex-col items-center justify-center">

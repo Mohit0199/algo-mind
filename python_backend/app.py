@@ -77,8 +77,9 @@ def generate_clustering_dataset(dataset_type):
 
 def generate_dim_reduction_dataset():
     from sklearn.datasets import make_classification
-    # Complex 10-D dataset with 3 distinct classes
-    X, y = make_classification(n_samples=400, n_features=10, n_informative=5, n_redundant=2, n_classes=3, n_clusters_per_class=1, random_state=42)
+    # Generate a complex dataset with exactly 3 visible classes. Scaled down to prevent Render 512MB RAM timeouts.
+    X, y = make_classification(n_samples=250, n_features=5, n_informative=3, 
+                               n_redundant=1, n_classes=3, class_sep=2.0, random_state=42)
     return X, y
 
 def build_dim_reduction_fig(X_transformed, y, is_3d=False):
@@ -503,7 +504,7 @@ async def visualize_algorithm(req: VisualizeRequest):
                 if lr != "auto": lr = float(lr)
                 n_iter = int(params.get("n_iter", 1000))
                 n_comp = 3 if is_3d else 2
-                clf = TSNE(n_components=n_comp, perplexity=perplexity, learning_rate=lr, n_iter=n_iter, random_state=42)
+                clf = TSNE(n_components=n_comp, perplexity=perplexity, learning_rate=lr, n_iter=n_iter, random_state=42, n_jobs=-1)
                 X_transformed = clf.fit_transform(X)
                 metrics["KL Divergence"] = f"{clf.kl_divergence_:.4f}"
                 
